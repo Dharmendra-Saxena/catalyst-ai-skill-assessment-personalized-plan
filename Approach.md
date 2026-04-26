@@ -1,29 +1,27 @@
-# Project Write-up: AI Skill Assessment & Personalized Learning Plan
+# Project Write-up: AI Skill Assessment & Learning Plan
 
 ## 1. Approach & Objective
-The core objective of this project is to transform the traditional, static resume screening process into a dynamic, interactive experience. Instead of a simple keyword match, this system acts as an **expert Technical Skills Assessor**. 
+The core objective of this project is to automate the technical screening process by moving beyond static keyword matching. The system acts as an **expert Technical Skills Assessor** that conducts a forensic comparison between a Job Description (JD) and a Resume, followed by a live validation interview.
 
-The approach is built on a **four-phase agentic lifecycle**:
-1.  **Forensic Analysis:** Silently extracting required skills from a Job Description (JD) and comparing them against a candidate's resume to identify potential gaps.
-2.  **Sequential Validation:** Engaging the candidate in a one-by-one interview process using scenario-based technical questions to verify "Actual Proficiency" versus "Theoretical Knowledge".
-3.  **Iteration Loop:** Maintaining state through a conversation history to ensure every identified skill is addressed.
-4.  **Strategic Reporting:** Generating a comprehensive final report that doesn't just list failures but provides a roadmap for growth.
+The system follows a 4-phase agentic lifecycle:
+1. **Forensic Analysis:** Silently identifying required skills and comparing them to the uploaded resume.
+2. **Sequential Validation:** Asking one-by-one, scenario-based technical questions to verify actual proficiency.
+3. **The Iteration Loop:** Maintaining state to ensure every identified skill is assessed before finalizing.
+4. **Strategic Reporting:** Generating an actionable HTML report with gaps, learning plans, and time estimates.
 
 ## 2. Technical Architecture
-The solution is orchestrated via **n8n**, utilizing a modular architecture to handle data flow and AI reasoning:
+The solution is orchestrated via **n8n**, utilizing a modular, local-first architecture:
 
-* **Data Ingestion:** Uses a `FormTrigger` to capture the JD and a secondary `Form` node for candidate details and PDF resume uploads.
-* **File Processing:** The `Extract from File` node converts binary PDF data into raw text for AI consumption.
-* **Context Priming:** A JavaScript `Code` node ("Prime Context") structures the initial prompt, ensuring the AI enters Phase 1 with all necessary documents without further user prompting.
-* **Intelligence Engine:** An `AI Agent` node powered by **OpenAI’s gpt-4o-mini**. This is paired with a `Window Buffer Memory` to maintain context over long, multi-question interviews while staying within token limits.
-* **Control Flow (The Loop):** An `If` node monitors the AI's output. It detects a specific "Final Report Signal" (`Validated Proficiencies`) to decide whether to continue the interview via `Form1` or finalize the process.
-* **Output Formatting:** Dual JavaScript nodes sanitize and style the output—one for plain-text UI interaction and another that generates a professional, styled **HTML Report** for the final assessment.
+* **Trigger & Ingestion:** Uses a `FormTrigger` for the JD and a `Form` node for candidate details and PDF resume uploads.
+* **File Extraction:** The `Extract from File` node handles the conversion of PDF binary data into text, ensuring data remains within the workflow execution.
+* **Context Priming:** A JavaScript `Code` node ("Prime Context") structures the initial payload, ensuring the AI begins Phase 1 with all necessary context without manual intervention.
+* **Intelligence Engine:** Powered by an `AI Agent` using the **Gemini 2.0 Flash** model. This provides high-speed reasoning and massive context window capabilities.
+* **Memory Management:** A `Window Buffer Memory` node ensures the agent remembers previous answers throughout the long interview process.
+* **Logical Routing:** An `If` node acts as a "State Guard." It checks the AI's output for a completion signal ("Validated Proficiencies"). If found, it routes to reporting; if not, it loops back to the interview form.
+* **Output Sanitization:** Custom JavaScript nodes sanitize raw AI output for the web form and generate a professional, styled **HTML Report** for the final assessment.
 
 ## 3. Trade-offs & Design Decisions
-* **Model Selection:** We utilized **gpt-4o-mini** to balance high-level reasoning with cost-efficiency, ensuring the tool remains scalable for high-volume recruitment.
-* **User Interface:** By using **n8n's native form nodes**, we eliminated the need for a separate frontend hosting environment, reducing complexity and ensuring data stays within the workflow.
-* **Sanitization Logic:** Custom regex-based JavaScript nodes were implemented to ensure that AI-generated Markdown or special characters don't break the form's JSON structure, leading to a smoother user experience.
-* **Privacy:** The "zero-cloud" footprint philosophy is respected by processing the binary PDF data directly in memory during the execution rather than storing files in external databases.
-
-## 4. Conclusion
-This architecture demonstrates how low-code tools like n8n can be combined with sophisticated AI agent logic to solve complex, domain-specific problems—moving beyond simple automation and into the realm of intelligent, autonomous assistance.
+* **Model Selection (Gemini 2.0 Flash):** Chosen for its exceptional speed and efficiency in long-context conversations compared to traditional GPT models.
+* **Local-First Processing:** By extracting PDF text directly in n8n, we avoid using external third-party PDF parsing APIs, increasing data privacy.
+* **Looping Mechanism:** Instead of a single long form, the workflow uses a "Recursive Loop" via n8n forms, which makes the experience feel like a real-time chat for the candidate.
+* **State Signal:** Using a specific string ("Validated Proficiencies") as a trigger for the final report is a lightweight but effective way to manage agentic state without a database.
